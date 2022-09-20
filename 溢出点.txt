@@ -1,0 +1,68 @@
+cyclic 100
+gdb程序到报错 复制报错段
+cyclic -l 报错段 
+得到距离栈底距离
+
+mprotect函数好用
+先找mprotect 后找 popret 3个参数修改内存权限
+然后用read函数读取 buf区内容 
+最后buf区写入shellcode
+由于返回地址在buf 又因为buf此时可读可写可执行 所以直接执行了我们注入的shellcode
+
+
+x64统一使用 
+context(arch = 'amd64', os = 'linux',log_level = 'debug')
+shellcode = asm(shellcraft.amd64.linux.sh())
+x32统一使用
+context.log_level='debug'
+
+find -name name
+
+栈迁移
+需要向上溢出最少8个字节 存放ebp需要4字节 存放ret_addr需要4字节 每一位地址存放一字节数据 向上溢出0x8 
+1、pop ebp 此时ebp地址可以被劫持 执行后指向劫持地址
+2、esp指向ret_addr可以被覆盖 
+3、pop eip写入leave ret 来mov esp ebp 此时ebp esp都被迁移
+https://blog.csdn.net/weixin_39529207/article/details/123005057
+
+#发送时使用send而不用sendline否则payload末尾会附上终止符导致无法连带打印出栈上内容
+#利用printf函数打印出后四位即caller_ebp的值
+#gdb发现栈上ebp距离参数0x38
+#0x38-0x4-0x4-0x4-0x4=0x28
+#寻找leave地址来pop ebp 并且mov esp,ebp
+#写入后门函数
+#补齐0x28到ebp处
+#将ebp覆盖为参数s的存放地址并且迁移栈
+
+
+　32位与64位 系统调用的区别：
+
+　　1. 传参方式不同
+
+　　2. 系统调用号 不同
+
+　　3. 调用方式 不同
+
+　　32位：
+
+　　传参方式：首先将系统调用号 传入 eax，然后将参数 从左到右 依次存入 ebx，ecx，edx寄存器中，返回值存在eax寄存器
+
+　　调用号：sys_read 的调用号 为 3 sys_write 的调用号 为 4
+
+　　调用方式: 使用 int 80h 中断进行系统调用
+
+　　64位：
+
+　　传参方式：首先将系统调用号 传入 rax，然后将参数 从左到右 依次存入 rdi，rsi，rdx寄存器中，返回值存在rax寄存器
+
+　　调用号：sys_read 的调用号 为 0 sys_write 的调用号 为 1
+
+　　stub_execve 的调用号 为 59 stub_rt_sigreturn 的调用号 为 15
+
+　　调用方式: 使用 syscall 进行系统调用
+
+search aaaa
+x/8gx 地址 可以查看aaaa附近地址
+
+
+http://111.231.213.101/compete/200/detail
